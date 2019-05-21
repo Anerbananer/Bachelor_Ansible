@@ -1,0 +1,19 @@
+firewall ansible_host=10.0.0.1
+node1 ansible_host=10.0.0.10
+node2 ansible_host=10.0.1.10
+ansible ansible_host=10.0.0.20
+
+[lan]
+node1
+ansible
+
+[fw]
+firewall
+
+[dmz]
+node2
+
+[clients]
+firewall
+node1
+node2

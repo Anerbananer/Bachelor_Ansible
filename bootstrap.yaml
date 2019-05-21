@@ -1,0 +1,27 @@
+---
+- hosts: clients
+  gather_facts: no
+  tasks:
+  - name: Ensure group "ansible_sudo" exists
+    group:
+      name: "{{ item }}"
+      state: present
+    with_items:
+    - ansible_sudo
+    - ansible_user
+  - name: Add the user 'ansible_user' with a specific uid and a primary group of 'ansible_sudo'
+    user:
+      name: ansible_user
+      comment: Ansible bruger
+      uid: 5000
+      group: ansible_user
+      groups: ansible_sudo
+      password: "$6$asiodnoiasnoaini$X2si8tkPVO7PKwBMIYeFOJJolFPHT5xmHfUBQ0cDLfuDvN4bDURToEPtbFkbpYwq3EbgPIT3xvtgXbr1vLz6k/"
+  - name: Copy sudo configuration for 'ansible_user'
+    copy:
+      src: files/ansible_sudo
+      dest: /etc/sudoers.d/
+      owner: root
+      group: root
+      mode: '0440'
+
