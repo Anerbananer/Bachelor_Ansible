@@ -1,0 +1,5 @@
+10.0.0.1    firewall.anders.lan
+10.0.1.1    firewall.anders.dmz
+10.0.0.20   ansible.anders.lan
+10.0.0.10   node1.anders.lan
+10.0.1.10   node2.anders.dmz
