@@ -2,70 +2,263 @@
 - hosts: firewall
   gather_facts: yes
   become: yes
-  roles:
-    - { role: shhirose.firewalld }
-  vars:
-    shhirose_firewalld:
-      targets:
-      - target: REJECT
-        zone: internal
-      - target: REJECT
-        zone: dmz
-      - target: DROP
-        zone: external
   tasks:
-  - name: tildeler int til lan zone
-    firewalld:
-      zone: internal
-      state: enabled
-      interface: enp0s8
-      permanent: yes
-      immediate: yes
-
-  - name: tildeler int til dmz zone
-    firewalld:
-      zone: dmz
-      state: enabled
-      interface: enp0s9
-      permanent: yes
-      immediate: yes
-  
-  - name: tildeler int til external zone
-    firewalld:
-      zone: external
-      state: enabled
-      interface: enp0s3
-      permanent: yes
-      immediate: yes
-
-  - name: Set masqurade på public int
-    firewalld:
-      masquerade: yes
-      state: enabled
-      permanent: yes
-      zone: external
-      immediate: yes
-
-  - name: tillad port 22 fra ansible maskine til firewall
-    firewalld:
-      port: 22/tcp
-      permanent: yes
-      state: enabled
-      zone: internal
-      immediate: yes
-      source: 10.0.0.20/32
-
-  - name: tillad port 22 fra windows host til firewall
-    firewalld:
-      port: 22/tcp
-      permanent: yes
-      state: enabled
-      zone: external
-      immediate: yes
-            
-
-  - name: reload firewalld
+  - name: stop firewalld
     service:
       name: firewalld
-      state: reloaded
-        
+      state: stopped
+      enabled: no
+
+  - name: iptables flush filter
+    iptables:
+      chain: "{{ item }}"
+      flush: yes
+    with_items:  [ 'INPUT', 'FORWARD', 'OUTPUT' ]
+
+  - name: iptables flush nat
+    iptables:
+      table: nat
+      chain: '{{ item }}'
+      flush: yes
+    with_items: [ 'INPUT', 'OUTPUT', 'PREROUTING', 'POSTROUTING' ]
+
+  - name: Enable masquerade
+    iptables:
+      table: nat
+      chain: POSTROUTING
+      out_interface: enp0s3
+      jump: MASQUERADE
+
+  - name: Enable Incomming Connection Tracking
+    iptables:
+      chain: INPUT
+      ctstate: [ 'ESTABLISHED', 'RELATED']
+      match: conntrack
+      jump: ACCEPT
+
+  - name: Enable Outgoing Connection Tracking
+    iptables:
+      chain: OUTPUT
+      ctstate: [ 'ESTABLISHED']
+      match: conntrack
+      jump: ACCEPT
+
+  - name: Allow DNS traffic to firewall (UDP)
+    iptables:
+      chain: INPUT
+      protocol: udp
+      ctstate: [ 'ESTABLISHED', 'RELATED']
+      match: conntrack
+      destination_port: "{{item}}"
+      jump: ACCEPT
+      in_interface: enp0s3
+    with_items:
+    - "53"
+
+  - name: Allow DNS, HTTP, HTTPS traffic to firewall (TCP)
+    iptables:
+      chain: INPUT
+      protocol: tcp
+      ctstate: [ 'ESTABLISHED', 'RELATED']
+      match: conntrack
+      destination_port: "{{item}}"
+      jump: ACCEPT
+      in_interface: enp0s3
+    with_items:
+    - "53"
+    - "80"
+    - "8080"
+    - "443"
+
+  - name: Allow DNS traffic from firewall (UDP)
+    iptables:
+      chain: OUTPUT
+      ctstate: ['ESTABLISHED', 'NEW']
+      match: conntrack
+      protocol: udp
+      destination_port: "{{item}}"
+      jump: ACCEPT
+      out_interface: enp0s3
+    with_items:
+    - "53"
+
+  - name: Allow DNS traffic from firewall (TCP)
+    iptables:
+      chain: OUTPUT
+      ctstate: ['ESTABLISHED', 'NEW']
+      match: conntrack
+      protocol: tcp
+      destination_port: "{{item}}"
+      jump: ACCEPT
+      out_interface: enp0s3
+    with_items:
+    - "53"
+    - "80"
+    - "8080"
+    - "443"
+
+  - name: Allow loopback
+    iptables:
+      chain: INPUT
+      jump: ACCEPT
+      source: "127.0.0.1"
+  
+#  - name: Allow DMZ to External interface
+#    iptables:
+#      chain: FORWARD
+#      jump: ACCEPT
+#      in_interface: enp0s9
+#      out_interface: enp0s3
+#
+#
+#  - name: Allow LAN to External interface
+#    iptables:
+#      chain: FORWARD
+#      jump: ACCEPT
+#      in_interface: enp0s8
+#      out_interface: enp0s3
+
+  - name: Allow External to LAN interface if Established and Related
+    iptables:
+      chain: FORWARD
+      ctstate: [ 'ESTABLISHED', 'RELATED']
+      match: conntrack
+      jump: ACCEPT
+      in_interface: enp0s3
+      out_interface: enp0s8 
+
+  - name: Allow External to DMZ interface if Established and Related
+    iptables:
+      chain: FORWARD
+      ctstate: [ 'ESTABLISHED', 'RELATED']
+      match: conntrack
+      jump: ACCEPT
+      in_interface: enp0s3
+      out_interface: enp0s9
+
+  - name: Allow LAN to DMZ interface
+    iptables:
+      chain: FORWARD
+      jump: ACCEPT
+      protocol: tcp
+      destination_port: "22"
+      in_interface: enp0s8
+      out_interface: enp0s9
+
+  - name: Allow DMZ to LAN interface if Established and Related
+    iptables:
+      chain: FORWARD
+      ctstate: [ 'ESTABLISHED', 'RELATED']
+      match: conntrack
+      jump: ACCEPT
+#      protocol: tcp
+#      destination_port: "22"
+      in_interface: enp0s9
+      out_interface: enp0s8
+  
+  - name: Allow traffic from LAN to firewall
+    iptables:
+      chain: INPUT
+      protocol: tcp
+      destination_port: "22"
+      jump: ACCEPT
+      source: 10.0.0.0/24
+      destination: 10.0.0.1/32
+
+  - name: Allow traffic from firewall to nodes
+    iptables:
+      chain: OUTPUT
+      protocol: tcp
+      destination_port: "22"
+      jump: ACCEPT
+      source: "{{ item }}"
+    with_items:
+    - "10.0.0.1/32"
+    - "10.0.1.1/32"
+    - "127.0.0.1/32"
+
+  - name: Allow traffic from windows host to firewall
+    iptables:
+      chain: INPUT
+      protocol: tcp
+      destination_port: "22"
+      jump: ACCEPT
+      in_interface: enp0s3      
+
+  - name: Allow Internet and DNS traffic from LAN to External (TCP)
+    iptables:
+      chain: FORWARD
+      protocol: tcp
+      destination_port: "{{item}}"
+      jump: ACCEPT
+      in_interface: enp0s8
+      out_interface: enp0s3
+    with_items:
+    - "80"
+    - "8080"
+    - "443"
+    - "53"
+
+  - name: Allow Internet and DNS traffic from LAN to External (UDP)
+    iptables:
+      chain: FORWARD
+      protocol: udp
+      destination_port: "{{item}}"
+      jump: ACCEPT
+      in_interface: enp0s8
+      out_interface: enp0s3
+    with_items:
+    - "53"
+
+  - name: Allow Internet and DNS traffic from DMZ to External (TCP)
+    iptables:
+      chain: FORWARD
+      protocol: tcp
+      destination_port: "{{item}}"
+      jump: ACCEPT
+      in_interface: enp0s9
+      out_interface: enp0s3
+    with_items:
+    - "80"
+    - "8080"
+    - "443"
+    - "53"
+
+  - name: Allow Internet and DNS traffic from LAN to External (UDP)
+    iptables:
+      chain: FORWARD
+      protocol: udp
+      destination_port: "{{item}}"
+      jump: ACCEPT
+      in_interface: enp0s9
+      out_interface: enp0s3
+    with_items:
+    - "53"
+
+  - name: Deny all traffic
+    iptables:
+      chain: INPUT
+      jump: REJECT
+      in_interface: "{{ item }}"
+    with_items:
+    - enp0s8
+    - enp0s9
+
+  - name: Deny all traffic
+    iptables:
+      chain: INPUT
+      jump: DROP
+      in_interface: "{{ item }}"
+    with_items:
+    - enp0s3
+
+  - name: Deny all Outgoing traffic
+    iptables:
+      chain: OUTPUT
+      jump: REJECT
+    
+  - name: Deny all Forwarded traffic
+    iptables:
+      chain: FORWARD
+      jump: REJECT
+
