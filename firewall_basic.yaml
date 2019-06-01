@@ -2,6 +2,12 @@
 - hosts: firewall
   gather_facts: no
   become: yes
+  vars:
+    nat_to_zone: "DMZ"
+    nat_to_port: "80"
+    nat_from_port: "80"
+    nat_to_ip: "10.0.1.10"
+
   tasks:
   - name: stop firewalld
     service:
@@ -206,6 +212,9 @@
       out_interface: enp0s3
     with_items:
     - "53"
+
+  - name: Access to AWX Web Interface
+    include: nat_fw_include.yml
 
   - name: Deny all traffic from External
     iptables:
