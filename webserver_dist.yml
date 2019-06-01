@@ -27,5 +27,9 @@
       permanent: yes
       state: enabled
 
+- hosts: firewall
+  become: yes
+  gather_facts: no
+  tasks:
   - name: Include nat fw rules
     include: nat_fw_include.yml
