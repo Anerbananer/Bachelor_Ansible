@@ -1,0 +1,60 @@
+---
+- hosts: ansible
+  become: yes
+  tasks:
+    - name: Create CA key pair
+      openssh_keypair:
+        path: /etc/ssh/ca_host_key
+        force: yes
+        owner: ansible_admin
+#      loop: "{{ groups['all'] }}"
+  
+
+    - name: tell the host about our servers it might want to ssh to
+      known_hosts:
+        path: /home/ansible_admin/.ssh/known_hosts
+        name: root
+        key: "{{ lookup('file', '/etc/ssh/ca_host_key.pub') }}"
+        hash_host: no
+#- hosts: ansible
+#  gather_facts: yes
+#  become: yes
+#
+#  vars:
+#    ca_key_dir: /etc/ssh
+
+
+
+#   - name: Sign certificates
+#     openssh_cert:
+#       type: host
+#       signing_key: /tmp/ca_host_key
+#       public_key: /home/ansible_admin/.ssh/ssh_host_rsa_key.pub
+#       path: /home/ansible_admin/.ssh/ssh_host_rsa_key_cert.pub
+#       valid_from: always
+#       valid_to: forever
+
+
+
+
+
+
+#    - name: Install ssh key
+#      copy:
+#        src: "{{ source_key }}"
+#        dest: "{{ dest_key }}"
+#        mode: 0600
+#        owner: ansible_admin
+
+
+
+#  - name: Generate openssh user certificate
+#    openssh_cert:
+#      type: host
+#      signing_key: /home/ansible_admin/.ssh/ca_user_key
+#      public_key: /etc/ssh/ssh_host_rsa_key.pub
+#      path: /home/ansible_admin/Bachelor_Ansible/certificate/host_cert
+#      valid_from: always
+#      valid_to: forever
+
+
