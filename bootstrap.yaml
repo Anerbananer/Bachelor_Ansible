@@ -1,5 +1,5 @@
 ---
-- hosts: clients
+- hosts: all
   gather_facts: no
   become: yes
   vars:
@@ -54,8 +54,7 @@
       - { name: ansible.anders.lan, ip: 10.0.0.20 }
       - { name: node2.anders.dmz, ip: 10.0.1.10 }
       - { name: firewall.anders.lan, ip: 10.0.0.1 }
-#      - { name: firewall.anders.lan, ip: 10.0.1.1 } 
-
+      - { name: ipa.anders.lan, ip: 10.0.0.30 }
   
   - name: install ssh key
     copy:
