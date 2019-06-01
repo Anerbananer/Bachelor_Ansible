@@ -1,0 +1,49 @@
+- name: DMZ
+  set_fact:
+    zone_interface: enp0s9
+  when: nat_to_zone == "DMZ"
+
+- name: LAN
+  set_fact:
+    zone_interface: enp0s8
+  when: nat_to_zone == "LAN"
+
+- name: Forward port
+  iptables:
+    table: nat
+    chain: PREROUTING
+    in_interface: enp0s3
+    to_destination: "{{ nat_to_ip }}:{{ nat_to_port }}"
+    destination_port: "{{ nat_from_port}}"
+    protocol: tcp
+    jump: DNAT
+
+- name: Allow traffic to firewall
+  iptables:
+    chain: INPUT
+    action: insert
+    protocol: tcp
+    destination_port: "{{ nat_to_port }}"
+    jump: ACCEPT
+    in_interface: enp0s3
+
+- name: Allow traffic from firewall
+  iptables:
+    chain: OUTPUT
+    action: insert
+    protocol: tcp
+    destination: "{{ nat_to_ip }}"
+    destination_port: "{{ nat_to_port}}"
+    jump: ACCEPT
+    out_interface: enp0s9
+
+- name: Allow Traffic forward
+  iptables:
+    chain: FORWARD
+    action: insert
+    in_interface: enp0s3
+    protocol: tcp
+    destination_port: "{{ nat_to_port }}"
+    destination: "{{ nat_to_ip }}"
+    jump: ACCEPT
+

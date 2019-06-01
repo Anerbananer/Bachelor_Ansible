@@ -1,0 +1,31 @@
+---
+- hosts: node2
+  gather_facts: no
+  become: yes
+  vars:
+    nat_to_zone: "DMZ"
+    nat_to_port: "80"
+    nat_from_port: "80"
+    nat_to_ip: "10.0.1.10"
+    
+  tasks:
+  - name: Install apache webserver
+    yum:
+      name: httpd
+      state: latest
+  
+  - name: Start apache service
+    service:
+      name: httpd
+      enabled: yes
+      state: started 
+
+  - name: Open local fw port 80
+    firewalld:
+      service: http
+      immediate: yes
+      permanent: yes
+      state: enabled
+
+  - name: Include nat fw rules
+    include: nat_fw_include.yml

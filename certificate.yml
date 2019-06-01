@@ -1,0 +1,23 @@
+---
+- hosts: clients
+  become: yes
+  tasks:
+
+    - name: copy public key to be signed
+      copy:
+      
+
+
+    - name: Create CA certificate
+      openssh_cert:
+        type: host
+        signing_key: /home/ansible_admin/.ssh/ca_host_key
+        public_key: /etc/ssh/ssh_host_rsa_key.pub
+        path: /home/ansible_user/.ssh/ca-cert
+        valid_from: always
+        valid_to: forever
+#      loop: "{{ groups['all'] }}"
+
+
+    - name: restart sshd
+      service: name=sshd state=restarted  

@@ -1,7 +1,7 @@
-firewall ansible_host=10.0.0.1
-node1 ansible_host=10.0.0.10
-node2 ansible_host=10.0.1.10
-ansible ansible_host=10.0.0.20
+firewall ansible_host=firewall.anders.lan
+node1 ansible_host=node1.anders.lan
+node2 ansible_host=node2.anders.dmz
+ansible ansible_host=ansible.anders.lan
 
 [lan]
 node1

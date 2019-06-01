@@ -1,6 +1,6 @@
 ---
 - hosts: firewall
-  gather_facts: yes
+  gather_facts: no
   become: yes
   tasks:
   - name: stop firewalld
@@ -39,13 +39,20 @@
   - name: Enable Outgoing Connection Tracking
     iptables:
       chain: OUTPUT
-      ctstate: [ 'ESTABLISHED']
+      ctstate: [ 'ESTABLISHED', 'RELATED']
+      match: conntrack
+      jump: ACCEPT
+  
+  - name: Enable Outgoing Connection Tracking
+    iptables:
+      chain: FORWARD
+      ctstate: [ 'ESTABLISHED', 'RELATED']
       match: conntrack
       jump: ACCEPT
 
   - name: Allow DNS traffic to firewall (UDP)
     iptables:
-      chain: INPUT
+      chain: FORWARD
       protocol: udp
       ctstate: [ 'ESTABLISHED', 'RELATED']
       match: conntrack
@@ -57,7 +64,7 @@
 
   - name: Allow DNS, HTTP, HTTPS traffic to firewall (TCP)
     iptables:
-      chain: INPUT
+      chain: FORWARD
       protocol: tcp
       ctstate: [ 'ESTABLISHED', 'RELATED']
       match: conntrack
@@ -70,54 +77,18 @@
     - "8080"
     - "443"
 
-  - name: Allow DNS traffic from firewall (UDP)
-    iptables:
-      chain: OUTPUT
-      ctstate: ['ESTABLISHED', 'NEW']
-      match: conntrack
-      protocol: udp
-      destination_port: "{{item}}"
-      jump: ACCEPT
-      out_interface: enp0s3
-    with_items:
-    - "53"
-
-  - name: Allow DNS traffic from firewall (TCP)
-    iptables:
-      chain: OUTPUT
-      ctstate: ['ESTABLISHED', 'NEW']
-      match: conntrack
-      protocol: tcp
-      destination_port: "{{item}}"
-      jump: ACCEPT
-      out_interface: enp0s3
-    with_items:
-    - "53"
-    - "80"
-    - "8080"
-    - "443"
-
   - name: Allow loopback
     iptables:
       chain: INPUT
       jump: ACCEPT
       source: "127.0.0.1"
-  
-#  - name: Allow DMZ to External interface
-#    iptables:
-#      chain: FORWARD
-#      jump: ACCEPT
-#      in_interface: enp0s9
-#      out_interface: enp0s3
-#
-#
-#  - name: Allow LAN to External interface
-#    iptables:
-#      chain: FORWARD
-#      jump: ACCEPT
-#      in_interface: enp0s8
-#      out_interface: enp0s3
 
+  - name: Allow WAN Interface
+    iptables:
+      chain: OUTPUT
+      jump: ACCEPT
+      out_interface: enp0s3
+ 
   - name: Allow External to LAN interface if Established and Related
     iptables:
       chain: FORWARD
@@ -140,8 +111,8 @@
     iptables:
       chain: FORWARD
       jump: ACCEPT
-      protocol: tcp
-      destination_port: "22"
+#      protocol: tcp
+#      destination_port: "22"
       in_interface: enp0s8
       out_interface: enp0s9
 
@@ -160,7 +131,7 @@
     iptables:
       chain: INPUT
       protocol: tcp
-      destination_port: "22"
+#      destination_port: "22"
       jump: ACCEPT
       source: 10.0.0.0/24
       destination: 10.0.0.1/32
@@ -210,19 +181,20 @@
     with_items:
     - "53"
 
-  - name: Allow Internet and DNS traffic from DMZ to External (TCP)
+  - name: Allow Internet traffic from DMZ to External (TCP)
     iptables:
       chain: FORWARD
       protocol: tcp
       destination_port: "{{item}}"
       jump: ACCEPT
+      destination: mirror.fysik.dtu.dk
       in_interface: enp0s9
       out_interface: enp0s3
     with_items:
     - "80"
     - "8080"
     - "443"
-    - "53"
+    
 
   - name: Allow Internet and DNS traffic from LAN to External (UDP)
     iptables:
@@ -235,7 +207,27 @@
     with_items:
     - "53"
 
-  - name: Deny all traffic
+  - name: Deny all traffic from External
+    iptables:
+      chain: INPUT
+      jump: DROP
+      in_interface: "{{ item }}"
+    with_items:
+    - enp0s3
+
+  - name: Log all Outgoing drops
+    iptables:
+      chain: INPUT
+      jump: LOG
+      action: append
+      state: present
+      limit: 2/second
+      limit_burst: "20"
+      log_prefix: "FIREWALL INPUT LAN/DMZ DROP: "
+      log_level: info
+
+  
+  - name: Deny all traffic from LAN and DMZ
     iptables:
       chain: INPUT
       jump: REJECT
@@ -244,21 +236,57 @@
     - enp0s8
     - enp0s9
 
-  - name: Deny all traffic
+
+  - name: Log all Outgoing drops
     iptables:
-      chain: INPUT
-      jump: DROP
-      in_interface: "{{ item }}"
-    with_items:
-    - enp0s3
+      chain: OUTPUT
+      jump: LOG
+      action: append
+      state: present
+      limit: 2/second
+      limit_burst: "20"
+      log_prefix: "FIREWALL OUTPUT DROP: "
+      log_level: info
 
   - name: Deny all Outgoing traffic
     iptables:
       chain: OUTPUT
       jump: REJECT
-    
+  
+  - name: Log all Outgoing drops
+    iptables:
+      chain: FORWARD
+      jump: LOG
+      action: append
+      state: present
+      limit: 2/second
+      limit_burst: "20"
+      log_prefix: "FIREWALL FORWARD DROP: "
+      log_level: info
+
   - name: Deny all Forwarded traffic
     iptables:
       chain: FORWARD
       jump: REJECT
 
+  - name: Install iptables-services
+    yum:
+      name: iptables-services
+      state: latest
+
+  - name: Enable iptables
+    service:
+      name: iptables
+      state: started
+      enabled: yes
+
+  - name: Save fw rules
+    command: service iptables save
+
+  - name: Enable ipv4 forwarding
+    sysctl:
+      name: net.ipv4.ip_forward
+      value: "1"
+      sysctl_set: yes
+      state: present
+      reload: yes

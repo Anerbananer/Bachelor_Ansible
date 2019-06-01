@@ -1,7 +1,23 @@
 ---
 - hosts: clients
   gather_facts: no
+  become: yes
+  vars:
+    source_key: /home/ansible_admin/.ssh/id_rsa.pub
+    dest_key: /home/ansible_user/.ssh/id_rsa.pub
+
   tasks:
+  - name: Force mirrorlink to fysik.dtu.dk
+    copy:
+      src: files/CentOS-Base.repo
+      dest: /etc/yum.repos.d/
+      owner: root
+      group: root
+      mode: '0644'
+
+#  - name: Update cache
+#    yum: update_cache=yes
+
   - name: Ensure group "ansible_sudo" exists
     group:
       name: "{{ item }}"
@@ -9,6 +25,7 @@
     with_items:
     - ansible_sudo
     - ansible_user
+
   - name: Add the user 'ansible_user' with a specific uid and a primary group of 'ansible_sudo'
     user:
       name: ansible_user
@@ -17,6 +34,7 @@
       group: ansible_user
       groups: ansible_sudo
       password: "$6$asiodnoiasnoaini$X2si8tkPVO7PKwBMIYeFOJJolFPHT5xmHfUBQ0cDLfuDvN4bDURToEPtbFkbpYwq3EbgPIT3xvtgXbr1vLz6k/"
+
   - name: Copy sudo configuration for 'ansible_user'
     copy:
       src: files/play_sudo
@@ -24,6 +42,7 @@
       owner: root
       group: root
       mode: '0440'
+
   - name: add host mappings to /etc/hosts
     blockinfile:
       path: /etc/hosts
@@ -35,4 +54,25 @@
       - { name: ansible.anders.lan, ip: 10.0.0.20 }
       - { name: node2.anders.dmz, ip: 10.0.1.10 }
       - { name: firewall.anders.lan, ip: 10.0.0.1 }
-      - { name: firewall.anders.dmz, ip: 10.0.1.1 } 
+#      - { name: firewall.anders.lan, ip: 10.0.1.1 } 
+
+  
+  - name: install ssh key
+    copy:
+      src: "{{ source_key }}"
+      dest: "{{ dest_key }}"
+      mode: 0600
+      owner: ansible_user
+
+
+  - name: Set authorized key from file
+    authorized_key:
+      user: ansible_user
+      state: present
+      key: "{{ lookup('file', '/home/ansible_admin/.ssh/id_rsa.pub') }}"
+
+#  - name: Hardening OS
+#    vars:
+#
+#    roles:
+#      - ansible-hardening

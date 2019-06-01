@@ -1,0 +1,5 @@
+---
+- hosts: firewall
+  become: yes
+  tasks:
+  - include: nat_fw_include.yml
