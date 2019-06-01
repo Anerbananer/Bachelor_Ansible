@@ -3,10 +3,10 @@
   gather_facts: no
   become: yes
   vars:
-    nat_to_zone: "DMZ"
-    nat_to_port: "80"
-    nat_from_port: "80"
-    nat_to_ip: "10.0.1.10"
+    nat_to_zone: "LAN"
+    nat_to_port: "8052"
+    nat_from_port: "8052"
+    nat_to_ip: "10.0.0.20"
 
   tasks:
   - name: stop firewalld
