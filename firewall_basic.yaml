@@ -213,6 +213,38 @@
     with_items:
     - "53"
 
+  - name: Allow DMZ connection to IPA with Kerberos (TCP)
+    iptables:
+      chain: FORWARD
+      protocol: tcp
+      destination_port: "{{item}}"
+      jump: ACCEPT
+      in_interface: enp0s9
+      destination: 10.0.0.30
+    with_items:
+    - "80"
+    - "443"
+    - "389"
+    - "636"
+    - "88"
+    - "464"
+    - "53"
+
+  - name: Allow DMZ connection to IPA with Kerberos (UDP)
+    iptables:
+      chain: FORWARD
+      protocol: udp
+      destination_port: "{{item}}"
+      jump: ACCEPT
+      in_interface: enp0s9
+      destination: 10.0.0.30
+    with_items:
+    - "88"
+    - "464"
+    - "53"
+    - "123"
+
+
   - name: Access to AWX Web Interface
     include: nat_fw_include.yml
 

@@ -56,19 +56,19 @@
       - { name: firewall.anders.lan, ip: 10.0.0.1 }
       - { name: ipa.anders.lan, ip: 10.0.0.30 }
   
-  - name: install ssh key
-    copy:
-      src: "{{ source_key }}"
-      dest: "{{ dest_key }}"
-      mode: 0600
-      owner: ansible_user
+#  - name: install ssh key
+#    copy:
+#      src: "{{ source_key }}"
+#      dest: "{{ dest_key }}"
+#      mode: 0600
+#      owner: ansible_user
 
 
-  - name: Set authorized key from file
-    authorized_key:
-      user: ansible_user
-      state: present
-      key: "{{ lookup('file', '/home/ansible_admin/.ssh/id_rsa.pub') }}"
+#  - name: Set authorized key from file
+#    authorized_key:
+#      user: ansible_user
+#      state: present
+#      key: "{{ lookup('file', '/home/ansible_admin/.ssh/id_rsa.pub') }}"
 
 #  - name: Hardening OS
 #    vars:
