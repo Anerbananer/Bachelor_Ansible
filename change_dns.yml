@@ -1,0 +1,12 @@
+---
+- name: "Included Role - ahuffman.resolv Example"
+  hosts: "all"
+  tasks:
+    - name: "Configure resolv.conf"
+      include_role:
+        name: "ansible-resolv"
+      vars:
+        resolv_nameservers:
+          - "10.0.0.30"
+        resolv_search: 
+          - "anders.lan"
