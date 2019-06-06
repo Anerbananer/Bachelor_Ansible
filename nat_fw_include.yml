@@ -1,6 +1,6 @@
 - name: DMZ
   set_fact:
-    zone_interface: enp0s9
+    zone_interface: enp0s9 
   when: nat_to_zone == "DMZ"
 
 - name: LAN
@@ -35,7 +35,7 @@
     destination: "{{ nat_to_ip }}"
     destination_port: "{{ nat_to_port}}"
     jump: ACCEPT
-    out_interface: enp0s9
+    out_interface: "{{ zone_interface }}"
 
 - name: Allow Traffic forward
   iptables:

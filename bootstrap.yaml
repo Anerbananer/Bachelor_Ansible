@@ -55,6 +55,31 @@
       - { name: node2.anders.dmz, ip: 10.0.1.10 }
       - { name: firewall.anders.lan, ip: 10.0.0.1 }
       - { name: ipa.anders.lan, ip: 10.0.0.30 }
+
+- hosts: clients
+  gather_facts: yes
+  become: yes
+  tasks:
+  - name:
+    yum:
+      name: deltarpm
+      state: present
+
+
+  - name: Install IPA client on clients
+    yum:
+      name: ipa-client.x86_64
+      state: present
+
+  - name: Create home directory for IPA
+    command: ipa-client-install --mkhomedir
+
+  - name: Stop and disable firewalld
+    service:
+      name: firewalld
+      state: stopped
+      enabled: False
+      
   
 #  - name: install ssh key
 #    copy:

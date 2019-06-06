@@ -1,6 +1,0 @@
----
-- hosts: firewall
-  gather_facts: yes
-  become: yes
-  roles:
-    - firewall_role
