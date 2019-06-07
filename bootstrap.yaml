@@ -1,7 +1,8 @@
 ---
 - hosts: all
   become: yes
-
+  vars_files:
+    - passwd_vault.yml
   tasks:
   - name: Force mirrorlink to fysik.dtu.dk
     copy:
@@ -26,7 +27,8 @@
       uid: 5000
       group: ansible_user
       groups: ansible_sudo
-      password: "$6$6u.9PeImfSR7qhyd$V9lgQy4SJEzAOsw.Kendijte3TraoL.8Yolm8svI6GRUPyrAextPxChIynBuJi5bocKdQ5zqUk5bqSP.4nbCJ."
+      password: "{{ vault_passwd | password_hash('sha512') }}"    
+ # password: "$6$6u.9PeImfSR7qhyd$V9lgQy4SJEzAOsw.Kendijte3TraoL.8Yolm8svI6GRUPyrAextPxChIynBuJi5bocKdQ5zqUk5bqSP.4nbCJ."
 
   - name: Copy sudo configuration for 'ansible_user'
     copy:
