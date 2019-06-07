@@ -1,10 +1,6 @@
 ---
 - hosts: all
-  gather_facts: no
   become: yes
-  vars:
-    source_key: /home/ansible_admin/.ssh/id_rsa.pub
-    dest_key: /home/ansible_user/.ssh/id_rsa.pub
 
   tasks:
   - name: Force mirrorlink to fysik.dtu.dk
@@ -14,9 +10,6 @@
       owner: root
       group: root
       mode: '0644'
-
-#  - name: Update cache
-#    yum: update_cache=yes
 
   - name: Ensure group "ansible_sudo" exists
     group:
@@ -33,7 +26,7 @@
       uid: 5000
       group: ansible_user
       groups: ansible_sudo
-      password: "$6$asiodnoiasnoaini$X2si8tkPVO7PKwBMIYeFOJJolFPHT5xmHfUBQ0cDLfuDvN4bDURToEPtbFkbpYwq3EbgPIT3xvtgXbr1vLz6k/"
+      password: "$6$6u.9PeImfSR7qhyd$V9lgQy4SJEzAOsw.Kendijte3TraoL.8Yolm8svI6GRUPyrAextPxChIynBuJi5bocKdQ5zqUk5bqSP.4nbCJ."
 
   - name: Copy sudo configuration for 'ansible_user'
     copy:
@@ -55,48 +48,29 @@
       - { name: node2.anders.dmz, ip: 10.0.1.10 }
       - { name: firewall.anders.lan, ip: 10.0.0.1 }
       - { name: ipa.anders.lan, ip: 10.0.0.30 }
+ 
+  - name: "Configure resolv.conf"
+    include_role:
+      name: "ansible-resolv"
+    vars:
+      resolv_nameservers:
+        - "10.0.0.30"
+      resolv_search:
+        - "anders.lan"
 
-- hosts: clients
-  gather_facts: yes
+- hosts: clients, ansible
   become: yes
   tasks:
-  - name:
-    yum:
-      name: deltarpm
-      state: present
 
-
-  - name: Install IPA client on clients
+  - name: Install IPA client on clients    
     yum:
       name: ipa-client.x86_64
       state: present
 
+
   - name: Create home directory for IPA
     command: ipa-client-install --mkhomedir
 
-  - name: Stop and disable firewalld
-    service:
-      name: firewalld
-      state: stopped
-      enabled: False
-      
   
-#  - name: install ssh key
-#    copy:
-#      src: "{{ source_key }}"
-#      dest: "{{ dest_key }}"
-#      mode: 0600
-#      owner: ansible_user
 
-
-#  - name: Set authorized key from file
-#    authorized_key:
-#      user: ansible_user
-#      state: present
-#      key: "{{ lookup('file', '/home/ansible_admin/.ssh/id_rsa.pub') }}"
-
-#  - name: Hardening OS
-#    vars:
-#
-#    roles:
-#      - ansible-hardening
+## password: "$6$asiodnoiasnoaini$X2si8tkPVO7PKwBMIYeFOJJolFPHT5xmHfUBQ0cDLfuDvN4bDURToEPtbFkbpYwq3EbgPIT3xvtgXbr1vLz6k/"

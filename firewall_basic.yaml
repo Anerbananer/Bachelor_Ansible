@@ -9,6 +9,11 @@
     nat_to_ip: "10.0.0.20"
 
   tasks:
+  - name: Install iptables-services
+    yum:
+      name: iptables-services
+      state: latest
+
   - name: stop firewalld
     service:
       name: firewalld
@@ -309,11 +314,6 @@
     iptables:
       chain: FORWARD
       jump: REJECT
-
-  - name: Install iptables-services
-    yum:
-      name: iptables-services
-      state: latest
 
   - name: Enable iptables
     service:

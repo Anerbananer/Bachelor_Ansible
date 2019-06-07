@@ -2,10 +2,12 @@ firewall ansible_host=firewall.anders.lan
 node1 ansible_host=node1.anders.lan
 node2 ansible_host=node2.anders.dmz
 ansible ansible_host=ansible.anders.lan
+ipa ansible_host=ipa.anders.lan
 
 [lan]
 node1
 ansible
+ipa
 
 [fw]
 firewall
@@ -17,3 +19,4 @@ node2
 firewall
 node1
 node2
+
